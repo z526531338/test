@@ -1,0 +1,391 @@
+
+acl
+
+一 概念
+
+acl：访问控制列表
+
+二 用途
+
+为什么要用acl
+
+1 路由器降低资源利用，性能加强
+2 安全 
+  感兴趣的数据可以匹配，其它不感兴趣的丢弃
+
+三 原理
+
+ACL用来匹配数据
+
+层次
+3层： 标准acl---source ip 
+4层： 扩展acl--- source ip port protocol   des ip port protocol
+
+进行过滤
+acl=过滤器
+
+
+命令格式
+
+标准  access-list 编号 动作 源地址  反掩码
+
+入站
+出站
+
+acl 
+
+
+eg1：
+
+定义规则
+r2(config)#access-list 1 deny any   
+
+接口应用
+r2(config)#interface fastEthernet 0/0
+r2(config-if)#ip access-group 1 in
+
+常见的应用
+a 接口   access-group     协议 access-group 号 in/out    ip access-group 1 in
+b vty模式下telnet              access-class 1 in 
+c route-map
+
+
+注意：数据包的方向
+动作：permit deny
+方向：in  out
+协议：tcp udp ip 
+
+acl中，反掩码 0：严格要求匹配，1：所无所谓 不要求
+
+特殊
+
+any   ：所有 all  0.0.0.0 255.255.255.255
+host  ：唯一的，单一的   1.1.1.1 0.0.0.0
+
+acl 匹配规则
+
+从上到下，依次匹配。匹配成功则执行，不成功继续下一条规则。。。最后都没有匹配，采取默认规则deny，即丢弃。
+
+
+
+r2#show acc
+r2#show access-lists    //查看所有acl的内容
+Standard IP access list 1
+    10 deny any (5 match(es))
+r2#sh
+r2#show acc
+r2#show access-lists 1 ?
+  <cr>
+r2#show access-lists 1    //具体一条规则
+Standard IP access list 1
+    deny any (5 match(es))
+r2#
+r2#
+r2(config)#no access-list 1   //删除acl
+r2(config-if)#no ip access-group 1 in    //删除接口调用规则
+
+eg2
+
+设置密码
+
+r2(config)#enable password cisco
+r2(config-line)#line vty 0 4
+r2(config-line)#password 123456
+r2(config-line)#login
+r2(config-line)#exit
+
+acl定义和调用
+
+r2(config)#access-list 1 permit 12.0.0.0 0.0.0.255
+r2(config)#access-list 1 deny any 
+r2(config-line)#line vty 0 4
+r2(config-line)#access-class 1 in   //vty模式下调用acl
+
+
+R2(config)#access-list 1 permit 12.0.0.0 0.0.0.255        
+R2(config)#access-list 1 permit 1.1.1.0 0.0.0.255
+R2(config)#access-list 1 deny 10.0.0.0 0.0.0.255
+R2(config)#access-list 1 deny any 
+R2(config)#line vty 0 4
+R2(config-line)#access-class 1 in 
+
+R2#sh access-lists 
+Standard IP access list 1
+    10 permit 12.0.0.0, wildcard bits 0.0.0.255
+    20 permit 1.1.1.0, wildcard bits 0.0.0.255
+    30 deny   10.0.0.0, wildcard bits 0.0.0.255
+    40 deny   any
+R2#
+R2#
+
+
+R1#tel
+R1#telnet 2.2.2.2 sou
+R1#telnet 2.2.2.2 ?  
+  /debug             Enable telnet debugging mode
+  /encrypt           Negotiate telnet encryption
+  /ipv4              Force use of IP version 4
+  /ipv6              Force use of IP version 6
+  /line              Enable telnet line mode
+  /noecho            Disable local echo
+  /quiet             Suppress login/logout messages
+  /route:            Enable telnet source route mode
+  /source-interface  Specify source interface
+  /stream            Enable stream processing
+  /terminal-type     Set terminal type
+  <0-65535>          Port number
+  bgp                Border Gateway Protocol (179)
+  chargen            Character generator (19)
+  cmd                Remote commands (rcmd, 514)
+  daytime            Daytime (13)
+  discard            Discard (9)
+  domain             Domain Name Service (53)
+  drip               Dynamic Routing Information Protocol (3949)
+  echo               Echo (7)
+  exec               Exec (rsh, 512)
+  finger             Finger (79)
+          
+R1#telnet 2.2.2.2 /sou
+R1#telnet 2.2.2.2 /source-interface lo
+R1#telnet 2.2.2.2 /source-interface loopback 0
+Trying 2.2.2.2 ... Open
+
+
+User Access Verification
+
+Password: 
+R2>
+
+R2>enable 
+Password: 
+R2#sh user
+    Line       User       Host(s)              Idle       Location
+   0 con 0                idle                 00:01:50   
+*130 vty 0                idle                 00:00:00 1.1.1.1
+
+  Interface    User               Mode         Idle     Peer Address
+
+R2#
+
+R1#telnet 12.0.0.2 /source-interface loopback 1
+Trying 12.0.0.2 ... 
+% Connection refused by remote host
+
+R1#
+
+R2#sh access-lists 
+Standard IP access list 1
+    10 permit 12.0.0.0, wildcard bits 0.0.0.255 (4 matches)
+    20 permit 1.1.1.0, wildcard bits 0.0.0.255 (2 matches)
+    30 deny   10.0.0.0, wildcard bits 0.0.0.255 (2 matches)
+    40 deny   any
+R2#
+
+注意：标准acl是不能单独删除列表中任何一条规则的，要删都删除了
+
+R2(config)#no access-list 1 den
+R2(config)#no access-list 1 ?  
+  <cr>
+
+R2(config)#no access-list 1 
+R2(config)#no access-list 1 
+R2#sh acce
+R2#sh access-l
+R2#sh access-lists 
+
+R2#
+
+
+##############################################################################
+
+
+acl
+
+标准acl      源地址  3层    靠近目标应用acl
+扩展acl      源&目的：地址 tcp 端口 
+高级acl即命名acl   智能
+之前删减不方便，要删都删了，高级可以有效地解决这个问题，
+删除某一条规则
+no +规则编号
+重启规则后自动刷新
+
+注意：对于自身路由器所产生的数据是放行的，即不匹配
+
+
+问题：R1--R2 PING不通，要求acl只能写在R1上
+
+实验一
+
+采用标准acl实现不了
+
+实验二
+
+扩展acl
+
+格式：access-list 编号 动作（permit/deny） 协议（ip tcp udp icmp等） 源地址 目标地址  端口号或名称
+
+ping：icmp  去  回
+ request echo  
+ reply echo 
+
+
+icmp多用于 ping arp rarp tracert traceroute keepalive
+
+
+R1(config)#access-list 100 deny icmp host 10.0.0.2 host 10.0.0.1 echo-reply 
+R1(config)#access-list 100 permit icmp any any
+R1(config)#interface fastEthernet 0/0
+R1(config-if)#ip access-group 100 in
+
+R1#ping 10.0.0.2
+
+Type escape sequence to abort.
+Sending 5, 100-byte ICMP Echos to 10.0.0.2, timeout is 2 seconds:
+.....
+Success rate is 0 percent (0/5)
+
+R1#
+
+
+扩展acl如何匹配列表中的规则？
+
+自上而下
+
+access-list 100 deny icmp host 10.0.0.2 host 10.0.0.1 echo-reply 
+
+
+
+
+R2(config)#access-list 120 permit tcp  10.0.0.100 0.0.0.0 10.0.0.2 0.0.0.0 eq 23
+
+或
+
+R2(config)#access-list 120 permit tcp 10.0.0.100 0.0.0.0 10.0.0.2 0.0.0.0 eq telnet 
+R2(config)#line vty 0 15 
+R2(config-line)#access-group 120 in
+R2(config-line)#password hello
+R2(config-line)#login
+
+
+
+line vty 0 4
+ access-class 120 in
+ password hello
+ login
+line vty 5 15
+ access-class 120 in
+ password hello
+ login
+
+
+
+
+R2(config)#access-list 120 deny tcp host 10.0.0.200 host 10.0.0.2 eq telnet 
+R2(config)#access-list 120 deny tcp host 10.0.0.1 host 10.0.0.2 eq telnet 
+R2(config)#access-list 120 permit tcp any any 
+R2(config)#line vty 0 15 
+R2(config-line)#access-group 120 in
+R2(config-line)#password hello
+R2(config-line)#login
+
+动态acl
+ip access-list extended zhang
+permit ospf any any
+permit tcp 12.0.0.0 0.0.0.255 any eq telnet
+dynamic a permit ip 12.0.0.0 0.0.0.255 any
+int s0/0     ip access-group zhang in
+username *** auto access-enable host timeout 2
+
+
+##############################################################
+
+established   只能基于TCP
+1 原理
+syn=1
+ack=1
+2 用途
+内 -- 外
+让TCP的链接的相关数据可以出去，也可以回来，外部主动建立的tcp连接直接拒绝，也是说不允许外部发起tcp连接内部
+3 应用
+具体配置如下
+详细见文档
+R1 ---- R2 ---- R3 启任意协议全网互通即可
+开启R1&R3的telnet，采用本地验证
+要求
+R1 —— R3，可以telnet
+R3 —— R1，不可以telnet
+分析得出解决方案为，采用扩展acl中关键字established使用
+
+telnet
+line vty 0 4
+login local
+
+Router(config)#ip access-list extended zsm
+Router(config-ext-nacl)#permit ospf any any
+Router(config-ext-nacl)#permit tcp any any established
+Router(config-ext-nacl)#exit
+Router(config)#int s0/1
+Router(config-if)#ip access-group zsm in
+
+#####在上面实验的基础上删除acl配置，重写acl，需要实现如下要求########
+要求
+R1 ---- R3： 可以telnet  PING
+R3 ---- R1:   不可以telnet  PING
+外不能访问内
+
+R2(config)#ip access-list extended go
+R2(config-ext-nacl)#permit ospf any any //必须有，否则ospf报文过不来了，都不通了。何谈acl？
+R2(config-ext-nacl)#permit ip any any reflect wt //允许ip报文通过，R1能PING通R3，R3不能PING通R1
+R2(config-ext-nacl)#exit
+R2(config)#ip access-list extended come
+R2(config-ext-nacl)#evaluate wt
+R2(config-ext-nacl)#exit
+R2(config)#interface serial 0/1
+R2(config-if)#ip access-group go out 
+R2(config-if)#ip access-group come in 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
